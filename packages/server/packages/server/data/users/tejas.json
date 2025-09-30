@@ -1,0 +1,22 @@
+{
+  "userDisplayName": "tejas",
+  "userId": "cmff2iwnd0000105nes7nztie",
+  "entries": [
+    {
+      "sessionId": "cmff2iwo40002105n3i2xxw1f",
+      "startedAt": "2025-09-11T07:09:39.171Z",
+      "endedAt": "2025-09-11T07:10:15.282Z",
+      "summary": "tejas started the chat saying \"hello\". Agent One responded. tejas asked for assistance. Agent One acknowledged the request. After 1 messages over ~1 minute, the chat was ended by agent.",
+      "topics": [
+        "hello"
+      ],
+      "messageCount": 1,
+      "participants": {
+        "user": "tejas",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": null
+    }
+  ]
+}

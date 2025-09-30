@@ -1,0 +1,51 @@
+{
+  "userDisplayName": "vinay",
+  "userId": "cmff73bf2000d105notaeef94",
+  "entries": [
+    {
+      "sessionId": "cmff73bfl000f105nqptcfduz",
+      "startedAt": "2025-09-11T09:17:29.889Z",
+      "endedAt": "2025-09-11T09:19:31.897Z",
+      "summary": "vinay started the chat saying \"Hiiiii\". Agent One responded. vinay indicated they wanted to proceed. Agent One confirmed they would handle the request. After 6 messages over ~2 minutes, the chat was ended by agent (requested by user).",
+      "topics": [
+        "hiiiii",
+        "want",
+        "food",
+        "okkay",
+        "hello",
+        "will",
+        "send"
+      ],
+      "messageCount": 6,
+      "participants": {
+        "user": "vinay",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": "user"
+    },
+    {
+      "sessionId": "cmff76y7h0012105nvw8w3vst",
+      "startedAt": "2025-09-11T09:20:19.374Z",
+      "endedAt": "2025-09-11T09:21:27.767Z",
+      "summary": "vinay started the chat saying \"i want laptop\". Agent One responded and asked a follow-up question. vinay indicated they wanted to proceed. Agent One confirmed they would handle the request. After 6 messages over ~1 minute, the chat was ended by agent.",
+      "topics": [
+        "want",
+        "laptop",
+        "lenovo",
+        "this",
+        "which",
+        "will",
+        "send",
+        "okay"
+      ],
+      "messageCount": 6,
+      "participants": {
+        "user": "vinay",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": null
+    }
+  ]
+}

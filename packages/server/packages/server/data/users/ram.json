@@ -1,0 +1,52 @@
+{
+  "userDisplayName": "ram",
+  "userId": "cmfe5d2o0000gy0p3ldk8f79x",
+  "entries": [
+    {
+      "sessionId": "cmfe5d2od000iy0p3qtfw49jx",
+      "startedAt": "2025-09-10T15:41:19.693Z",
+      "endedAt": "2025-09-10T15:42:53.771Z",
+      "summary": "ram asked about the request. Agent One confirmed they would handle it. Chat ended by agent (requested by user).",
+      "topics": [
+        "the request",
+        "hello",
+        "want",
+        "powerbank",
+        "price",
+        "okay",
+        "that",
+        "okkay"
+      ],
+      "messageCount": 7,
+      "participants": {
+        "user": "ram",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": "user"
+    },
+    {
+      "sessionId": "cmfe9btec0002y0f3ccqoiv7a",
+      "startedAt": "2025-09-10T17:32:19.476Z",
+      "endedAt": "2025-09-10T17:34:07.618Z",
+      "summary": "ram started the chat saying \"i want tv\". Agent One responded and asked a follow-up question. ram indicated they wanted to proceed. Agent One acknowledged the request. After 7 messages over ~2 minutes, the chat was ended by agent (requested by user).",
+      "topics": [
+        "want",
+        "samsung",
+        "okkay",
+        "thank",
+        "hello",
+        "help",
+        "which",
+        "sony"
+      ],
+      "messageCount": 7,
+      "participants": {
+        "user": "ram",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": "user"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+# --- Node & Workspaces ---
+node_modules/
+.pnpm-store/
+
+# Keep lockfile tracked
+# (do NOT ignore pnpm-lock.yaml)
+
+# --- Builds & Bundles ---
+# Vite/TypeScript outputs in packages
+/dist/
+packages/**/dist/
+
+# Vite cache (sometimes at project root)
+.vite/
+packages/**/.vite/
+
+# --- Logs & PIDs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.pid.lock
+
+# --- Test & Coverage ---
+coverage/
+.nyc_output/
+
+# --- TypeScript ---
+*.tsbuildinfo
+
+# --- Caches ---
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# --- Environment Files ---
+.env
+.env.*
+!.env.example
+
+# --- Editor/OS Artifacts ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Local Data (Docker/Postgres/etc.) ---
+postgres-data/
+
+# --- Prisma (KEEP) ---
+# Ensure Prisma schema and migrations are never ignored.
+!**/prisma/
+!**/prisma/**

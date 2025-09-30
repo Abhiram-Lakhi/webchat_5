@@ -1,0 +1,28 @@
+{
+  "userDisplayName": "Yash",
+  "userId": "cmfg8h2mi0000xn3j2l8nc3o9",
+  "entries": [
+    {
+      "sessionId": "cmfg8h2op0002xn3jucdrgnwm",
+      "startedAt": "2025-09-12T02:43:57.526Z",
+      "endedAt": "2025-09-12T02:46:29.139Z",
+      "summary": "Yash started the chat saying \"hello\". Agent One responded. Yash asked for assistance. Agent One confirmed they would handle the request. After 4 messages over ~3 minutes, the chat was ended by agent (requested by user).",
+      "topics": [
+        "hello",
+        "need",
+        "phone",
+        "okkay",
+        "take",
+        "care",
+        "that"
+      ],
+      "messageCount": 4,
+      "participants": {
+        "user": "Yash",
+        "agent": "Agent One"
+      },
+      "endedBy": "agent",
+      "endRequestedBy": "user"
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Chat Widget</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      #app { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+
+      /* Top site bar */
+      #site-form { position: sticky; top: 0; z-index: 10; padding: 10px 12px; background: #ffffffcc;
+                   backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid #e5e7eb; }
+      #site-form input#site { flex: 1 1 auto; min-width: 0; height: 36px; padding: 8px 12px;
+                   border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; color: inherit; }
+      #site-form input#site:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+      #site-form button#load { height: 36px; padding: 0 14px; border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff;
+                   border-radius: 10px; cursor: pointer; }
+      #site-form button#load:disabled { opacity: 0.6; cursor: not-allowed; }
+      #site-form label { color: #475569; }
+      #status { color: #6b7280; }
+
+      /* Chat area */
+      #chat { flex: 1 1 auto; overflow-y: auto; padding: 16px 12px 20px 12px;
+              background: radial-gradient(1000px 400px at 100% -10%, rgba(59,130,246,0.05), transparent 60%),
+                          radial-gradient(1200px 500px at -10% 0%, rgba(16,185,129,0.05), transparent 60%), #f8fafc; }
+
+      .bubble { position: relative; max-width: 78%; padding: 10px 12px; border-radius: 16px; line-height: 1.4;
+                margin: 6px 8px; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }
+      .bubble.bot { align-self: flex-start; background: #ffffff; border: 1px solid #e5e7eb; color: #0f172a; }
+      .bubble.me { align-self: flex-end; background: linear-gradient(180deg, #2563eb, #1d4ed8); color: #fff;
+                   border: 1px solid rgba(255,255,255,0.15); }
+      .bubble + .bubble { margin-top: 8px; }
+      .bubble code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(15,23,42,0.06);
+                     padding: 1px 6px; border-radius: 6px; }
+      .bubble.me code { background: rgba(255,255,255,0.18); }
+      .bubble pre { margin: 8px 0 0 0; padding: 10px; overflow: auto; border-radius: 12px; background: #0b1020;
+                    color: #e5e7eb; border: 1px solid rgba(255,255,255,0.08); }
+
+      /* Composer */
+      #composer { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+                  background: #ffffffcc; backdrop-filter: saturate(1.2) blur(6px); border-top: 1px solid #e5e7eb; }
+      #composer input#msg { flex: 1 1 auto; height: 40px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px;
+                            background: #fff; color: inherit; }
+      #composer input#msg:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+      #composer button#send { height: 40px; padding: 0 16px; border: 1px solid #0ea5e9; background: #0ea5e9; color: #fff;
+                              border-radius: 12px; cursor: pointer; }
+      #composer button#send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* Dark mode tweaks */
+      @media (prefers-color-scheme: dark) {
+        body { background: #0b1020; color: #e5e7eb; }
+        #site-form { background: #0b1020cc; border-bottom-color: #1f2937; }
+        #site-form input#site { background: #0f172a; border-color: #1f2937; color: #e5e7eb; }
+        #site-form button#load { background: #2563eb; border-color: #1d4ed8; }
+        #site-form label { color: #9ca3af; }
+        #status { color: #9ca3af; }
+        #chat { background: radial-gradient(1200px 600px at -10% -10%, rgba(59,130,246,0.12), transparent 60%), #0b1020; }
+        .bubble.bot { background: #0f172a; border-color: #1f2937; color: #e5e7eb; }
+        .bubble pre { background: #0b1020; color: #e5e7eb; border-color: #111827; }
+        #composer { background: #0b1020cc; border-top-color: #1f2937; }
+        #composer input#msg { background: #0f172a; border-color: #1f2937; color: #e5e7eb; }
+        #composer button#send { background: #0891b2; border-color: #0e7490; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <form id="site-form" style="display:flex; gap:8px; align-items:center;">
+        <input id="site" type="text" placeholder="Enter website (e.g., https://example.com)" autocomplete="off" required />
+        <button id="load" type="submit">Load</button>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin-left:8px;">
+          <input id="openbook" type="checkbox" checked /> Allow general knowledge
+        </label>
+        <span id="status" style="font-size:12px; margin-left:6px;"></span>
+      </form>
+
+      <div id="chat"></div>
+
+      <form id="composer">
+        <input id="msg" type="text" placeholder="Ask a question about the loaded site..." autocomplete="off" required />
+        <button id="send" type="submit">Send</button>
+      </form>
+    </div>
+
+    <script>
+      const qs = new URLSearchParams(location.search);
+      const BASE = qs.get('base') || 'http://localhost:8000';
+      const chatEl = document.getElementById('chat');
+      const form = document.getElementById('composer');
+      const input = document.getElementById('msg');
+      const sendBtn = document.getElementById('send');
+      const siteForm = document.getElementById('site-form');
+      const siteInput = document.getElementById('site');
+      const loadBtn = document.getElementById('load');
+      const statusEl = document.getElementById('status');
+      const openbookEl = document.getElementById('openbook');
+      const sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+      let currentDomain = '';
+
+      function bubble(text, cls) {
+        const div = document.createElement('div');
+        div.className = 'bubble ' + cls;
+        div.textContent = text;
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      siteForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let site = siteInput.value.trim();
+        if (site && !site.startsWith('http://') && !site.startsWith('https://')) site = 'https://' + site;
+        if (!site) return;
+        statusEl.textContent = 'Indexing...';
+        loadBtn.disabled = true; input.disabled = true; sendBtn.disabled = true;
+        bubble(`Target site: ${site}`, 'bot');
+        try {
+          const res = await fetch(BASE + '/ingest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ site, max_pages: 40 })
+          });
+          const data = await res.json();
+          currentDomain = data.domain || '';
+          statusEl.textContent = `Indexed ${data.pages || 0} pages for ${currentDomain}`;
+          bubble(`Indexed ${data.pages || 0} pages for ${currentDomain}`, 'bot');
+
+          // NEW: notify parent page (widget.js) so the WA button can prefill "site https://<domain>"
+          try {
+            window.parent && window.parent.postMessage(
+              { source: 'rag-widget', type: 'indexed', domain: currentDomain },
+              '*'
+            );
+          } catch (_) {}
+        } catch (err) {
+          statusEl.textContent = 'Indexing failed';
+          bubble('Indexing failed: ' + (err && err.message ? err.message : err), 'bot');
+        } finally {
+          loadBtn.disabled = false; input.disabled = false; sendBtn.disabled = false;
+        }
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        if (!currentDomain) { bubble('Please enter a website above first.', 'bot'); return; }
+        bubble(text, 'me'); input.value = ''; sendBtn.disabled = true;
+        try {
+          const res = await fetch(BASE + '/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: sessionId,
+              message: text,
+              k: 4,
+              domain: currentDomain,
+              open_book: openbookEl.checked
+            })
+          });
+          const data = await res.json();
+          let reply = data.reply || '';
+          if (data.sources && data.sources.length) {
+            const cites = data.sources.map((s, i) => s.url ? `[${i+1}] ${s.url}` : `[${i+1}] ${s.type || ''}`).join('\n');
+            reply += (cites ? ('\n\n' + cites) : '');
+          }
+          bubble(reply, 'bot');
+        } catch (err) {
+          bubble('Error contacting server: ' + (err && err.message ? err.message : err), 'bot');
+        } finally { sendBtn.disabled = false; }
+      });
+    </script>
+  </body>
+</html>

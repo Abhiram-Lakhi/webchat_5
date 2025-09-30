@@ -1,0 +1,51 @@
+:root{
+  --bg:#f5f9ff;
+  --bg-elev:#ffffff;
+  --text:#0b1320;
+  --muted:#5b6573;
+  --border:#e5e9f2;
+  --primary:#0ea5e9;
+  --radius:16px;
+  --shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(145deg,#f8fbff,var(--bg))}
+.container{width:min(1200px,92%);margin:0 auto;padding:48px 0 120px}
+
+/* ---- Cards/hero (landing) ---- */
+.hero{text-align:center;margin:8px 0 28px}
+.hero h1{font-size:clamp(28px,3.4vw,48px);line-height:1.1;margin:0 0 10px}
+.hero p{color:var(--muted);max-width:760px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;margin-top:24px}
+.card{background:var(--bg-elev);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,0,0,.10)}
+.card h3{margin:12px 0 6px}
+.card p{margin:0;color:var(--muted)}
+.iconBadge{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;box-shadow:var(--shadow);color:#fff}
+.badge-wa{background:radial-gradient(circle at 30% 30%,#43e676,#25d366)}
+.badge-sms{background:radial-gradient(circle at 30% 30%,#8b5cf6,#7c3aed)}
+.badge-live{background:radial-gradient(circle at 30% 30%,#22d3ee,#0ea5e9)}
+.section-title{text-align:center;margin:56px 0 18px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px}
+.step{background:var(--bg-elev);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow)}
+.step .num{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;margin:0 auto 8px;background:var(--primary);color:#fff;font-weight:700}
+
+/* ---- Floating widget ---- */
+.fab{position:fixed;right:20px;bottom:20px;z-index:1000}
+.fab-main{width:56px;height:56px;border:0;border-radius:50%;background:var(--primary);color:#fff;cursor:pointer;box-shadow:var(--shadow);font-size:22px}
+.fab-menu{position:absolute;right:0;bottom:70px;display:grid;gap:12px}
+.fab-item{width:50px;height:50px;border:0;border-radius:50%;cursor:pointer;color:#fff;box-shadow:var(--shadow);font-size:20px}
+.fab-wa{background:#25d366}.fab-sms{background:#7c3aed}.fab-live{background:#0ea5e9}.fab-close{background:#1f2937}
+.fab-label{position:absolute;right:60px;transform:translateY(-50%);margin-top:25px;background:#0b1320;color:#fff;padding:6px 10px;border-radius:10px;font-size:12px;opacity:.9;white-space:nowrap}
+
+/* ---- Your existing chat UI small helpers ---- */
+.banner{margin:8px 0;padding:10px 12px;background:#fff7d6;border:1px solid #ffe08a;border-radius:10px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);display:grid;place-items:center}
+.modal-card{width:min(440px,92%);background:#fff;padding:20px;border-radius:14px;box-shadow:var(--shadow)}
+input,button{font:inherit}
+input{border:1px solid var(--border);border-radius:10px;padding:10px}
+button{background:linear-gradient(180deg,#2e7cf6,#1662e3);color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.fab-label { display: none !important; }

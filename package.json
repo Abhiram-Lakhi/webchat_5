@@ -1,0 +1,19 @@
+{
+  "name": "webchat",
+  "private": true,
+  "packageManager": "pnpm@9.5.0",
+  "scripts": {
+    "dev:server": "pnpm --filter @webchat/server dev",
+    "dev:user": "pnpm --filter @webchat/web-user dev",
+    "dev:agent": "pnpm --filter @webchat/web-agent dev",
+    "dev:all": "concurrently -k -n server,user,agent -c blue,green,magenta \"pnpm dev:server\" \"pnpm dev:user\" \"pnpm dev:agent\"",
+    "format": "prettier -w ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "prettier": "^3.3.3"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

@@ -1,0 +1,157 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@webchat/web-user</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --brand-hue: 210; /* user: blue */
+      --bg: #f6f7fb;
+      --bg-elev: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(15, 23, 42, 0.12);
+      --ring: hsl(var(--brand-hue) 92% 60% / 0.45);
+      --primary: hsl(var(--brand-hue) 85% 54%);
+      --primary-600: hsl(var(--brand-hue) 85% 48%);
+      --primary-700: hsl(var(--brand-hue) 85% 40%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1020;
+        --bg-elev: #0f162e;
+        --text: #e5e7eb;
+        --muted: #9aa6b2;
+        --border: rgba(148, 163, 184, 0.18);
+        --ring: hsl(var(--brand-hue) 92% 70% / 0.35);
+        --primary: hsl(var(--brand-hue) 85% 68%);
+        --primary-600: hsl(var(--brand-hue) 85% 62%);
+        --primary-700: hsl(var(--brand-hue) 85% 56%);
+      }
+    }
+
+    /* Base resets and typography */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(1200px 800px at 10% -10%, hsl(var(--brand-hue) 95% 75% / 0.18), transparent),
+                  radial-gradient(1200px 800px at 110% 10%, hsl(var(--brand-hue) 95% 75% / 0.12), transparent),
+                  linear-gradient(180deg, var(--bg), var(--bg));
+      color: var(--text);
+      font: 500 14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      padding: 24px;
+    }
+
+    ::selection { background: hsl(var(--brand-hue) 95% 65% / 0.25); }
+
+    /* App shell wrapper */
+    #root {
+      width: min(1200px, 100% - 32px);
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      background: linear-gradient(180deg, var(--bg-elev), var(--bg-elev));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow:
+        0 10px 30px rgba(2, 6, 23, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      overflow: clip;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Smooth scroll + scrollbar polish */
+    html { scroll-behavior: smooth; }
+    * { scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }
+    *::-webkit-scrollbar { height: 10px; width: 10px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--primary), var(--primary-600));
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    /* Links and headings */
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    h1, h2, h3 { line-height: 1.2; margin: 0.2em 0 0.6em; }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.4rem; }
+    h3 { font-size: 1.15rem; }
+
+    /* Forms & controls */
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    button,
+    .button,
+    [role="button"] {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--primary), var(--primary-600));
+      color: white;
+      padding: 10px 14px;
+      border-radius: 12px;
+      box-shadow: 0 6px 14px hsl(var(--brand-hue) 85% 40% / 0.25);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.08s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+    button:hover { filter: brightness(1.02); }
+    button:active { transform: translateY(1px); box-shadow: 0 4px 10px hsl(var(--brand-hue) 85% 40% / 0.22); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="url"],
+    input[type="number"],
+    input[type="password"],
+    textarea,
+    select {
+      width: 100%;
+      background: var(--bg-elev);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    /* Tables (if any) */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { text-align: left; color: var(--muted); font-weight: 600; }
+
+    /* Utility spacing for default content */
+    .container { width: min(1100px, 100% - 32px); margin: 0 auto; }
+    .stack > * + * { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

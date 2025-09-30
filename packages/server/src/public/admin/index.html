@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Call Center Agent UI</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <!-- Socket.IO client (no bundler needed) -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Call Center Dashboard</h1>
+    <div id="conn" class="conn">
+      <span id="connDot" class="dot dot-off"></span>
+      <span id="connText">Disconnected</span>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">Total</div>
+      <div id="statTotal" class="stat-value">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Waiting</div>
+      <div id="statWaiting" class="stat-value">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Active</div>
+      <div id="statActive" class="stat-value">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Avg Wait</div>
+      <div id="statAvgWait" class="stat-value">0m</div>
+    </div>
+  </section>
+
+  <main class="main">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <input id="search" class="search" placeholder="Search conversations…" />
+        <div class="filters">
+          <select id="filterChannel">
+            <option value="">All Channels</option>
+            <option value="web">Web</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+          <select id="filterStatus">
+            <option value="">All Status</option>
+            <option value="waiting">Waiting</option>
+            <option value="active">Active</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select id="sortOrder">
+            <option value="recent">Most Recent</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+      </div>
+      <ul id="sessionList" class="session-list"></ul>
+    </aside>
+
+    <section class="chat">
+      <div id="chatHeader" class="chat-header">
+        <div id="chatTitle" class="chat-title">Select a conversation</div>
+        <div id="chatMeta" class="chat-meta"></div>
+      </div>
+      <div id="messages" class="messages"></div>
+      <div class="composer muted">
+        <div class="hint">
+          Read-only monitor. Admin does not send messages.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/admin/admin.js"></script>
+</body>
+</html>
