@@ -1,9 +1,9 @@
 # Webchat — Local live chat with handoff, WhatsApp, and RAG
 
-End-to-end live chat system where a user chats on the web, can request a human, an agent sees the queue with transcript preview, accepts the chat, and continues live in real time. Optional WhatsApp channel, admin monitor, Kafka event publishing, and RAG bot for site-aware answers.
+End-to-end live chat system where a user chats on the web, can request a human, an agent sees the queue with transcript preview, accepts the chat, and continues live in real time. WhatsApp channel, admin monitor, Kafka event publishing, and RAG bot for site-aware answers.
 
 This monorepo contains:
-- Server: Fastify + Socket.IO + Prisma (Postgres/pgvector) + optional Kafka + optional Twilio WhatsApp + optional OpenAI RAG
+- Server: Fastify + Socket.IO + Prisma (Postgres/pgvector) + Kafka + Twilio WhatsApp + OpenAI RAG
 - Web User app: React + Vite
 - Web Agent app: React + Vite
 - Admin viewer (static): read-only dashboard under `/admin`
@@ -72,8 +72,8 @@ ADMIN_ENABLED=true
 - Agent app: `pnpm dev:agent` → http://localhost:5174
 - All at once (optional): `pnpm dev:all`
 
-6) Admin (optional)
-- Open http://localhost:3001/admin/index.html (static read-only monitor)
+6) Admin
+- Open http://localhost:3001/admin (static read-only monitor)
 
 ## Usage and Workflow
 
