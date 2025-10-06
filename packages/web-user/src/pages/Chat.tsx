@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { getSocket } from '../lib/socket';
+import {
+  getSavedSessionId, saveSessionId, clearSessionId,
+  getSavedDisplayName, saveDisplayName, clearDisplayName
+} from '../lib/session';
 
 type Message = {
   id: string;
@@ -13,12 +17,15 @@ type Message = {
 export default function Chat() {
   const socket: Socket = getSocket();
 
-  // name gate
-  const [displayName, setDisplayName] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
+  // name gate (hydrate from storage so label shows after reload)
+  const [displayName, setDisplayName] = useState(getSavedDisplayName() || '');
+
+  // initialize from localStorage so UI survives reload
+  const initialSessionId = getSavedSessionId() || '';
+  const [hasStarted, setHasStarted] = useState(!!initialSessionId);
 
   // chat state
-  const [sessionId, setSessionId] = useState('');
+  const [sessionId, setSessionId] = useState(initialSessionId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [closed, setClosed] = useState(false);
@@ -38,12 +45,24 @@ export default function Chat() {
     socket.emit('hello', { role: 'user' });
   }, [socket]);
 
+  // if we already have a sessionId (from storage), ask the server for history once
+  useEffect(() => {
+    if (initialSessionId) {
+      socket.emit('session:join', { sessionId: initialSessionId });
+      setHasStarted(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (listenersBound.current) return;
     listenersBound.current = true;
 
     const onHistory = (p: { sessionId: string; messages: Message[] }) => {
       setSessionId(p.sessionId);
+      saveSessionId(p.sessionId);
+      setHasStarted(true);
+
       setMessages(p.messages || []);
       seenIds.current = new Set((p.messages || []).map(m => m.id));
       setClosed(false);
@@ -72,6 +91,8 @@ export default function Chat() {
       setEndRequested(false);
       setQueued(false);
       setAgentActive(false);
+      clearSessionId();
+      clearDisplayName(); // clear saved name when chat ends
     };
 
     const onDeclined = (p: { sessionId: string }) => {
@@ -101,10 +122,14 @@ export default function Chat() {
     const name = (displayName || '').trim();
     if (!name) return;
 
+    // persist name so it survives refresh
+    saveDisplayName(name);
+
     socket.emit('hello', { role: 'user', displayName: name });
 
     socket.emit('session:create', { displayName: name }, (res: any) => {
       if (res?.ok && res.sessionId) {
+        saveSessionId(res.sessionId);
         setHasStarted(true);
         setSessionId(res.sessionId);
         setMessages([]);
@@ -113,6 +138,8 @@ export default function Chat() {
         setQueued(false);
         setAgentActive(false);
         setEndRequested(false);
+
+        socket.emit('session:join', { sessionId: res.sessionId });
       } else {
         alert(res?.error || 'Failed to start chat');
       }
@@ -163,7 +190,15 @@ export default function Chat() {
           <div style={{ border: '1px solid var(--border)', padding: 12, height: 360, overflow: 'auto', borderRadius: 12, background: 'var(--bg-elev)' }}>
             {messages.map(m => (
               <div key={m.id} style={{ marginBottom: 8 }}>
-                <b>{m.senderType}:</b> {m.text}{' '}
+                <b>
+                  {m.senderType === 'user'
+                    ? (displayName || 'User')
+                    : m.senderType === 'agent'
+                    ? (agentName || 'Agent')
+                    : 'system'}
+                  :
+                </b>{' '}
+                {m.text}{' '}
                 <small>({new Date(m.createdAt).toLocaleTimeString()})</small>
               </div>
             ))}

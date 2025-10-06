@@ -7,32 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Channel a session belongs to
+enum Channel {
+  web
+  whatsapp
+  voice
+}
+
 model User {
-  id                   String            @id @default(cuid())
-  role                 String            @default("user")
-  displayName          String
-  email                String?           @unique
-  createdAt            DateTime          @default(now())
-  sessions             Session[]
-  assignments          AgentAssignment[]
-  handoffsAccepted     HandoffRequest[]  @relation("UserAcceptedHandoffs")
-  endRequestsAccepted  EndChatRequest[]  @relation("UserAcceptedEndRequests")
-  // NEW: opposite side of SessionSummary.user
-  sessionSummaries     SessionSummary[]
+  id                  String            @id @default(cuid())
+  role                String            @default("user")
+  displayName         String
+  email               String?           @unique
+  createdAt           DateTime          @default(now())
+  sessions            Session[]
+  assignments         AgentAssignment[]
+  handoffsAccepted    HandoffRequest[]  @relation("UserAcceptedHandoffs")
+  endRequestsAccepted EndChatRequest[]  @relation("UserAcceptedEndRequests")
+  sessionSummaries    SessionSummary[]
 }
 
 model Session {
-  id          String           @id @default(cuid())
-  status      String           @default("bot_pending")
-  user        User?            @relation(fields: [userId], references: [id])
+  id          String            @id @default(cuid())
+  status      String            @default("bot_pending")
+  user        User?             @relation(fields: [userId], references: [id])
   userId      String?
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime          @default(now())
   closedAt    DateTime?
   messages    Message[]
   handoffs    HandoffRequest[]
   assignments AgentAssignment[]
-  endRequests EndChatRequest[] @relation("SessionEndRequests")
+  endRequests EndChatRequest[]  @relation("SessionEndRequests")
   summary     SessionSummary?
+
+  // which channel this session came from
+  channel Channel @default(web)
 }
 
 model Message {
@@ -48,68 +57,67 @@ model Message {
   @@index([sessionId, id])
 }
 
-
 model HandoffRequest {
-  id           String   @id @default(cuid())
-  session      Session  @relation(fields: [sessionId], references: [id])
+  id           String    @id @default(cuid())
+  session      Session   @relation(fields: [sessionId], references: [id])
   sessionId    String
-  requestedAt  DateTime @default(now())
+  requestedAt  DateTime  @default(now())
   acceptedAt   DateTime?
   acceptedById String?
-  acceptedBy   User?    @relation("UserAcceptedHandoffs", fields: [acceptedById], references: [id])
+  acceptedBy   User?     @relation("UserAcceptedHandoffs", fields: [acceptedById], references: [id])
 }
 
 model AgentAssignment {
-  id         String   @id @default(cuid())
-  agent      User     @relation(fields: [agentId], references: [id])
+  id         String    @id @default(cuid())
+  agent      User      @relation(fields: [agentId], references: [id])
   agentId    String
-  session    Session  @relation(fields: [sessionId], references: [id])
+  session    Session   @relation(fields: [sessionId], references: [id])
   sessionId  String
-  assignedAt DateTime @default(now())
+  assignedAt DateTime  @default(now())
   endedAt    DateTime?
 }
 
 model EndChatRequest {
-  id           String   @id @default(cuid())
-  session      Session  @relation("SessionEndRequests", fields: [sessionId], references: [id])
+  id           String    @id @default(cuid())
+  session      Session   @relation("SessionEndRequests", fields: [sessionId], references: [id])
   sessionId    String
-  requestedAt  DateTime @default(now())
-  requestedBy  String   // 'user' | 'agent'
+  requestedAt  DateTime  @default(now())
+  requestedBy  String // 'user' | 'agent'
   acceptedAt   DateTime?
   declinedAt   DateTime?
   acceptedById String?
-  acceptedBy   User?    @relation("UserAcceptedEndRequests", fields: [acceptedById], references: [id])
-  status       String   @default("pending") // pending | accepted | declined
+  acceptedBy   User?     @relation("UserAcceptedEndRequests", fields: [acceptedById], references: [id])
+  status       String    @default("pending") // pending | accepted | declined
 
   @@index([sessionId, status])
 }
 
 model SessionSummary {
-  id               String   @id @default(cuid())
-  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId        String   @unique
-  user             User?    @relation(fields: [userId], references: [id])
-  userId           String?
+  id        String  @id @default(cuid())
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String  @unique
+  user      User?   @relation(fields: [userId], references: [id])
+  userId    String?
 
   // Snapshots
   userDisplayName  String
   agentDisplayName String
 
   // Content
-  summary          String
-  topics           String[] // Postgres text[]
-  messageCount     Int
+  summary      String
+  topics       String[] // Postgres text[]
+  messageCount Int
 
   // Timing/meta
-  startedAt        DateTime
-  endedAt          DateTime
-  endedBy          String
-  endRequestedBy   String?
+  startedAt      DateTime
+  endedAt        DateTime
+  endedBy        String
+  endRequestedBy String?
 
   // Raw JSON copy of the full entry
-  raw              Json
+  raw Json
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
 }

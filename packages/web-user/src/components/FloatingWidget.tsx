@@ -1,15 +1,15 @@
-// packages/web-user/src/components/FloatingWidget.tsx
 import React from "react";
 import { FaWhatsapp } from "react-icons/fa";
 import { RiMessage2Fill } from "react-icons/ri";
 import { TbWorld } from "react-icons/tb";
+import { FaMicrophone } from "react-icons/fa6"; // 🎤 Voice bubble
 import { LuMessageCircle } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 
 const WA_NUMBER: string =
-  (import.meta as any).env?.VITE_WA_NUMBER || "14155238886"; // digits only (no '+') for wa.me
+  (import.meta as any).env?.VITE_WA_NUMBER || "14155238886";
 const WA_JOIN: string =
-  (import.meta as any).env?.VITE_WA_JOIN_CODE || ""; // e.g. "join upward-dear"
+  (import.meta as any).env?.VITE_WA_JOIN_CODE || "";
 const SMS_NUMBER: string =
   (import.meta as any).env?.VITE_SMS_NUMBER || "15551234567";
 
@@ -30,6 +30,11 @@ const FloatingWidget: React.FC = () => {
 
   const openLiveChat = () => {
     navigate("/chat");
+    setOpen(false);
+  };
+
+  const openVoice = () => {
+    navigate("/voice");   // <-- Navigate to voice page
     setOpen(false);
   };
 
@@ -56,6 +61,13 @@ const FloatingWidget: React.FC = () => {
               <TbWorld />
             </button>
             <span className="fab-label">Live Web Chat</span>
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <button className="fab-item fab-voice" onClick={openVoice} aria-label="Voice">
+              <FaMicrophone />
+            </button>
+            <span className="fab-label">Voice Assistant</span>
           </div>
 
           <button className="fab-item fab-close" onClick={() => setOpen(false)} aria-label="Close">

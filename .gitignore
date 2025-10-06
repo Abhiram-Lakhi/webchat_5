@@ -1,58 +1,70 @@
-# --- Node & Workspaces ---
-node_modules/
-.pnpm-store/
 
-# Keep lockfile tracked
-# (do NOT ignore pnpm-lock.yaml)
-
-# --- Builds & Bundles ---
-# Vite/TypeScript outputs in packages
-/dist/
-packages/**/dist/
-
-# Vite cache (sometimes at project root)
-.vite/
-packages/**/.vite/
-
-# --- Logs & PIDs ---
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-*.pid
-*.pid.lock
-
-# --- Test & Coverage ---
-coverage/
-.nyc_output/
-
-# --- TypeScript ---
-*.tsbuildinfo
-
-# --- Caches ---
-.cache/
-.parcel-cache/
-.eslintcache
-.stylelintcache
-
-# --- Environment Files ---
+node_modules
+dist
+.build
+.prisma
+pnpm-lock.yaml
 .env
+.env.local
+/dev.db
+/dev.sqlite
+packages/server/prisma/dev.db
+packages/server/node_modules
+packages/web-user/node_modules
+packages/web-agent/node_modules
+packages/server/data/
+ 
+# --- Postgres data directories ---
+# Prevent committing local Postgres instance data
+postgres-data/
+pgdata/
+
+# Explicit Postgres runtime artifacts (covered by dirs above, kept for safety)
+PG_VERSION
+postmaster.pid
+postmaster.opts
+pg_wal/
+pg_xact/
+pg_subtrans/
+pg_logical/
+base/
+
+# --- Python (webchat-voice) ---
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.python-version
+webchat-voice/.env
+webchat-voice/.env.local
+webchat-voice/.venv/
+webchat-voice/.pytest_cache/
+webchat-voice/__pycache__/
+webchat-voice/uv.lock
+
+# --- Env files ---
 .env.*
 !.env.example
+!**/.env.example
+!**/.env.*.example
 
-# --- Editor/OS Artifacts ---
+# --- Editors & OS ---
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
-*.swp
 
-# --- Local Data (Docker/Postgres/etc.) ---
-postgres-data/
+# --- Logs & coverage ---
+*.log
+logs/
+coverage/
 
-# --- Prisma (KEEP) ---
-# Ensure Prisma schema and migrations are never ignored.
-!**/prisma/
-!**/prisma/**
+# --- Frontend/build tools ---
+.turbo/
+.next/
+**/.parcel-cache/
+**/.cache/
