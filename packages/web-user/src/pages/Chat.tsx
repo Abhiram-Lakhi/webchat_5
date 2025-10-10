@@ -1,3 +1,4 @@
+// packages/web-user/src/pages/Chat.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { getSocket } from '../lib/socket';
@@ -6,15 +7,20 @@ type Message = {
   id: string;
   sessionId: string;
   text: string;
-  senderType: 'user'|'agent'|'system';
+  senderType: 'user' | 'agent' | 'system';
   createdAt: string;
 };
+
+const LS_UID_KEY = 'webchat:userId';       // <--- persist userId here
+const LS_NAME_KEY = 'webchat:displayName'; // (optional) remember name
 
 export default function Chat() {
   const socket: Socket = getSocket();
 
   // name gate
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(
+    () => localStorage.getItem(LS_NAME_KEY) || ''
+  );
   const [hasStarted, setHasStarted] = useState(false);
 
   // chat state
@@ -45,7 +51,7 @@ export default function Chat() {
     const onHistory = (p: { sessionId: string; messages: Message[] }) => {
       setSessionId(p.sessionId);
       setMessages(p.messages || []);
-      seenIds.current = new Set((p.messages || []).map(m => m.id));
+      seenIds.current = new Set((p.messages || []).map((m) => m.id));
       setClosed(false);
       setQueued(false);
       setAgentActive(false);
@@ -56,7 +62,7 @@ export default function Chat() {
       if (m.sessionId !== sessionId) return;
       if (seenIds.current.has(m.id)) return;
       seenIds.current.add(m.id);
-      setMessages(v => [...v, m]);
+      setMessages((v) => [...v, m]);
     };
 
     const onAccepted = (p: { sessionId: string; agentName?: string }) => {
@@ -80,11 +86,29 @@ export default function Chat() {
       alert('Agent chose to continue the chat.');
     };
 
+    // (optional) continue prompt + merged history handler you had:
+    const onOfferContinue = (payload: { previousSessionId: string }) => {
+      const ok = confirm(
+        `Continue your previous session ${payload.previousSessionId}?`
+      );
+      if (ok) {
+        fetch('http://localhost:3001/session/continue', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            toSessionId: sessionId,
+            fromSessionId: payload.previousSessionId,
+          }),
+        });
+      }
+    };
+
     socket.on('message:history', onHistory);
     socket.on('message:new', onNew);
     socket.on('handoff:accepted', onAccepted);
     socket.on('session:closed', onClosed);
     socket.on('session:end:declined', onDeclined);
+    socket.on('session:offer-continue', onOfferContinue);
 
     return () => {
       socket.off('message:history', onHistory);
@@ -92,6 +116,7 @@ export default function Chat() {
       socket.off('handoff:accepted', onAccepted);
       socket.off('session:closed', onClosed);
       socket.off('session:end:declined', onDeclined);
+      socket.off('session:offer-continue', onOfferContinue);
       listenersBound.current = false;
     };
   }, [sessionId, socket]);
@@ -101,22 +126,35 @@ export default function Chat() {
     const name = (displayName || '').trim();
     if (!name) return;
 
+    // remember the name locally (optional)
+    localStorage.setItem(LS_NAME_KEY, name);
+
+    // If we’ve chatted before, reuse the same userId
+    const existingUserId = localStorage.getItem(LS_UID_KEY) || undefined;
+
     socket.emit('hello', { role: 'user', displayName: name });
 
-    socket.emit('session:create', { displayName: name }, (res: any) => {
-      if (res?.ok && res.sessionId) {
-        setHasStarted(true);
-        setSessionId(res.sessionId);
-        setMessages([]);
-        seenIds.current = new Set();
-        setClosed(false);
-        setQueued(false);
-        setAgentActive(false);
-        setEndRequested(false);
-      } else {
-        alert(res?.error || 'Failed to start chat');
+    socket.emit(
+      'session:create',
+      { displayName: name, userId: existingUserId }, // <-- send prior userId
+      (res: any) => {
+        if (res?.ok && res.sessionId) {
+          // save the canonical userId returned by server
+          if (res.userId) localStorage.setItem(LS_UID_KEY, res.userId);
+
+          setHasStarted(true);
+          setSessionId(res.sessionId);
+          setMessages([]);
+          seenIds.current = new Set();
+          setClosed(false);
+          setQueued(false);
+          setAgentActive(false);
+          setEndRequested(false);
+        } else {
+          alert(res?.error || 'Failed to start chat');
+        }
       }
-    });
+    );
   };
 
   const sendMessage = () => {
@@ -160,8 +198,17 @@ export default function Chat() {
           )}
           {closed && <div className="banner">The chat has been ended.</div>}
 
-          <div style={{ border: '1px solid var(--border)', padding: 12, height: 360, overflow: 'auto', borderRadius: 12, background: 'var(--bg-elev)' }}>
-            {messages.map(m => (
+          <div
+            style={{
+              border: '1px solid var(--border)',
+              padding: 12,
+              height: 360,
+              overflow: 'auto',
+              borderRadius: 12,
+              background: 'var(--bg-elev)',
+            }}
+          >
+            {messages.map((m) => (
               <div key={m.id} style={{ marginBottom: 8 }}>
                 <b>{m.senderType}:</b> {m.text}{' '}
                 <small>({new Date(m.createdAt).toLocaleTimeString()})</small>
@@ -173,16 +220,20 @@ export default function Chat() {
             <input
               style={{ flex: 1 }}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value)}
               placeholder={closed ? 'Chat is closed' : 'Type a message…'}
               disabled={closed}
-              onKeyDown={e => (e.key === 'Enter' ? sendMessage() : null)}
+              onKeyDown={(e) => (e.key === 'Enter' ? sendMessage() : null)}
             />
-            <button onClick={sendMessage} disabled={closed}>Send</button>
+            <button onClick={sendMessage} disabled={closed}>
+              Send
+            </button>
             <button onClick={requestHandoff} disabled={closed || queued || agentActive}>
               {queued ? 'Waiting for agent…' : 'Talk to a human'}
             </button>
-            <button onClick={requestEnd} disabled={closed || endRequested}>End chat</button>
+            <button onClick={requestEnd} disabled={closed || endRequested}>
+              End chat
+            </button>
           </div>
         </>
       )}
@@ -195,12 +246,14 @@ export default function Chat() {
             <input
               autoFocus
               value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
+              onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your name"
               type="text"
               style={{ marginBottom: 12 }}
             />
-            <button type="submit" style={{ width: '100%' }}>Start Chat</button>
+            <button type="submit" style={{ width: '100%' }}>
+              Start Chat
+            </button>
           </form>
         </div>
       )}

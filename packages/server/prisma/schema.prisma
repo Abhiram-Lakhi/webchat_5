@@ -43,6 +43,7 @@ model Message {
   senderId   String?
   text       String
   createdAt  DateTime @default(now())
+  metadata   Json?
 
   @@index([sessionId, createdAt])
   @@index([sessionId, id])
@@ -112,4 +113,49 @@ model SessionSummary {
   createdAt        DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+
+model AgnoUserMap {
+  id         String   @id @default(cuid())
+  userId     String
+  agnoUserId String
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@unique([userId, agnoUserId])
+}
+
+model AgnoSessionMap {
+  id            String   @id @default(cuid())
+  sessionId     String
+  agnoSessionId String
+  createdAt     DateTime @default(now())
+
+  @@index([sessionId])
+  @@unique([sessionId, agnoSessionId])
+}
+
+model SessionLink {
+  id            String   @id @default(cuid())
+  fromSessionId String
+  toSessionId   String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([fromSessionId])
+  @@index([toSessionId])
+}
+// Optional: read Python-side memories from Node
+model AgnoMemory {
+  id         BigInt   @id @default(autoincrement())
+  userId     String   @map("user_id")
+  sessionId  String   @map("session_id")
+  actor      String
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("agno_memories")
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([sessionId, createdAt(sort: Desc)])
 }

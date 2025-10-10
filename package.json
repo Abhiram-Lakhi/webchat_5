@@ -6,8 +6,8 @@
     "dev:server": "pnpm --filter @webchat/server dev",
     "dev:user": "pnpm --filter @webchat/web-user dev",
     "dev:agent": "pnpm --filter @webchat/web-agent dev",
-    "dev:all": "concurrently -k -n server,user,agent -c blue,green,magenta \"pnpm dev:server\" \"pnpm dev:user\" \"pnpm dev:agent\"",
-    "format": "prettier -w ."
+    "dev:core": "cd services/agno-core && python -m agnocore.app",
+    "dev:all": "concurrently -k -n SERVER,USER,AGENT,CORE -c blue,green,yellow,magenta \"pnpm --filter @webchat/server dev\" \"pnpm --filter @webchat/web-user dev\" \"pnpm --filter @webchat/web-agent dev\" \"pnpm dev:core\""
   },
   "devDependencies": {
     "concurrently": "^9.0.1",

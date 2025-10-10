@@ -15,6 +15,10 @@ import twilio from 'twilio';
 import { initAdminNamespace, emitAdminBootstrap, emitAdminMessageNew, emitAdminSessionUpdate, emitAdminSummary } from './admin-socket';
 import { initKafka, publishSafe, envelope } from './kafka';
 
+import { agnoAnswer, agnoMemoryUpdate, agnoSuggest } from "./integrations/agno";
+
+
+
 dotenv.config();
 const prisma = new PrismaClient();
 
@@ -264,6 +268,31 @@ res.send('<Response><Message>Got it — working on your reply…</Message></Resp
 
 app.post('/twilio/whatsapp', handleTwilioWA);
 app.post('/webhooks/twilio/whatsapp', handleTwilioWA);
+// ---- continue session (merge history from previous session into new session) ----
+app.post('/session/continue', async (req: any, reply) => {
+  const { toSessionId, fromSessionId, reason } = req.body || {};
+  if (!toSessionId || !fromSessionId) {
+    return reply.status(400).send({ ok: false, error: 'toSessionId and fromSessionId required' });
+  }
+  try {
+    await prisma.sessionLink.create({
+      data: { fromSessionId, toSessionId, reason: reason ?? 'channel-switch' },
+    });
+
+    const [a, b] = await Promise.all([
+      prisma.message.findMany({ where: { sessionId: fromSessionId }, orderBy: { createdAt: 'asc' } }),
+      prisma.message.findMany({ where: { sessionId: toSessionId }, orderBy: { createdAt: 'asc' } }),
+    ]);
+    const merged = [...a, ...b].sort((x, y) => Number(x.createdAt) - Number(y.createdAt));
+
+    const room = `public:session:${toSessionId}`;
+    io.to(room).emit('message:history', { sessionId: toSessionId, messages: merged, mergedFrom: fromSessionId });
+    return reply.send({ ok: true });
+  } catch (e: any) {
+    app.log?.error(e);
+    return reply.status(500).send({ ok: false, error: e?.message || 'continue failed' });
+  }
+});
 
 // ---------------- sockets (web) ----------------
 io.on('connection', (socket) => {
@@ -280,32 +309,51 @@ io.on('connection', (socket) => {
   });
 
   // Create session and greet once (web)
-  socket.on('session:create', async (payload: { displayName: string }, cb?: Function) => {
+// packages/server/src/index.ts  (inside io.on('connection', ...))
+
+  socket.on('session:create', async (payload: { displayName: string; userId?: string }, cb?: Function) => {
     try {
-      const user = await prisma.user.create({ data: { role: 'user', displayName: payload.displayName || 'Guest' } });
+      let user;
+      if (payload.userId) user = await prisma.user.findUnique({ where: { id: payload.userId } });
+      if (!user) user = await prisma.user.create({ data: { role: 'user', displayName: payload.displayName || 'Guest' } });
+
       socket.data.userId = user.id;
       socket.data.displayName = user.displayName;
 
       const session = await prisma.session.create({ data: { status: 'bot_pending', userId: user.id } });
+
       emitAdminSessionUpdate(session.id, { status: session.status, channel: 'web', createdAt: session.createdAt });
-      publishSafe('chat.sessions', session.id, envelope('SessionStarted', session.id, {
-        channel: 'web',
-        userDisplayName: user.displayName || null
-      }));
+      publishSafe('chat.sessions', session.id, envelope('SessionStarted', session.id, { channel: 'web', userDisplayName: user.displayName || null }));
+
       const room = `public:session:${session.id}`;
       socket.join(room);
 
-      cb && cb({ ok: true, sessionId: session.id });
+      // return both sessionId AND userId so the client can persist it
+      cb && cb({ ok: true, sessionId: session.id, userId: user.id });
+
       io.to(socket.id).emit('message:history', { sessionId: session.id, messages: [] });
 
       const greet = await prisma.message.create({
         data: { sessionId: session.id, senderType: 'agent', text: `Hi ${user.displayName}! How can I help you today?` },
       });
       io.to(room).emit('message:new', greet);
+
+      // (optional) offer-continue stays the same...
+      try {
+        const prev = await prisma.session.findFirst({
+          where: { userId: user.id, id: { not: session.id }, status: { not: 'closed' } },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        if (prev?.id) io.to(socket.id).emit('session:offer-continue', { previousSessionId: prev.id });
+      } catch (e) {
+        app.log?.warn({ e }, 'offer-continue lookup failed (non-fatal)');
+      }
     } catch (e: any) {
       cb && cb({ ok: false, error: e.message });
     }
   });
+
 
   socket.on('session:join', async (payload: { sessionId: string }, cb?: Function) => {
     try {
@@ -332,21 +380,94 @@ io.on('connection', (socket) => {
     }));
     const room = `public:session:${payload.sessionId}`;
     io.to(room).emit('message:new', msg);
+    try {
+      const actor: 'user' | 'agent' = (senderType === 'agent') ? 'agent' : 'user';
+      await agnoMemoryUpdate({
+        sessionId: payload.sessionId,
+        userId: socket.data.userId || 'unknown-user',
+        actor,
+        text: payload.text ?? '',
+      });
+    } catch (e) {
+      app.log?.warn({ e }, 'agno memory update failed');
+    }
+
 
     if (senderType === 'user') {
       const session = await prisma.session.findUnique({ where: { id: payload.sessionId } });
-      if (session && session.status === 'bot_pending') {
+      if (session && session.status === 'bot_pending' && process.env.AGNO_ENABLED === 'true') {
         try {
-          const domain = sessionDomain.get(payload.sessionId);
-          const r = await ragChat({ sessionId: payload.sessionId, message: payload.text, domain, k: 4 });
-          const reply = await prisma.message.create({ data: { sessionId: payload.sessionId, text: r.reply || '…', senderType: 'agent' } });
+          const tail = await prisma.message.findMany({
+            where: { sessionId: payload.sessionId },
+            orderBy: { createdAt: 'asc' },
+            take: 12,
+            select: { senderType: true, text: true },
+          });
+          const msgs = tail.map((m) => ({
+            role: m.senderType === 'agent' ? 'assistant' : 'user',
+            content: m.text ?? '',
+          }));
+          const { text, sources } = await agnoAnswer({
+            sessionId: payload.sessionId,
+            userId: socket.data.userId || 'unknown-user',
+            messages: msgs,
+            // context: sessionDomain.get(payload.sessionId) ? { domain: sessionDomain.get(payload.sessionId) } : undefined,
+          });
+          const reply = await prisma.message.create({
+            data: {
+              sessionId: payload.sessionId,
+              text: text || '…',
+              senderType: 'agent',
+              metadata: sources ? { sources } : undefined,
+            },
+          });
           io.to(room).emit('message:new', reply);
-        } catch {
-          const fail = await prisma.message.create({ data: { sessionId: payload.sessionId, text: `Sorry, I could not generate a reply right now.`, senderType: 'agent' } });
-          io.to(room).emit('message:new', fail);
+          // memory for bot reply
+          await agnoMemoryUpdate({
+            sessionId: payload.sessionId,
+            userId: socket.data.userId || 'unknown-user',
+            actor: 'bot',
+            text: text || '',
+          });
+          } catch (e) {
+            app.log?.error({ e }, 'agno answer failed');
+            const fail = await prisma.message.create({
+              data: { sessionId: payload.sessionId, text: `Sorry, I could not generate a reply right now.`, senderType: 'agent' }
+            });
+            io.to(room).emit('message:new', fail);
+          }
         }
       }
-    }
+      // --- If human is handling, ask Agno for suggestions (agent-only room)
+      if (senderType === 'user') {
+        const s = await prisma.session.findUnique({ where: { id: payload.sessionId } });
+        if (s && s.status === 'active_with_agent' && process.env.AGNO_ENABLED === 'true') {
+          try {
+            const tail = await prisma.message.findMany({
+              where: { sessionId: payload.sessionId },
+              orderBy: { createdAt: 'asc' },
+              take: 10,
+              select: { senderType: true, text: true },
+            });
+            const msgs = tail.map((m) => ({
+              role: m.senderType === 'agent' ? 'assistant' : 'user',
+              content: m.text ?? '',
+            }));
+
+            const { suggestions } = await agnoSuggest({
+              sessionId: payload.sessionId,
+              userId: socket.data.userId || 'unknown-user',
+              lastMessages: msgs,
+              max: 3,
+            });
+
+            const agentRoom = `agent:${payload.sessionId}`;
+            io.to(agentRoom).emit('suggestion:new', { sessionId: payload.sessionId, suggestions });
+          } catch (e) {
+            app.log?.warn({ e }, 'agno suggest failed');
+          }
+        }
+      }
 
     // Relay agent messages to WhatsApp if this session is WA
     if (senderType === 'agent' && waSessions.has(payload.sessionId) && twilioClient && TWILIO_WHATSAPP_FROM) {
@@ -412,7 +533,9 @@ io.on('connection', (socket) => {
       io.to(lobbyRoom).emit('queue:remove', { handoffRequestId: payload.handoffRequestId });
 
       const room = `public:session:${updated.sessionId}`;
+      const agentRoom = `agent:${updated.sessionId}`; 
       socket.join(room);
+      socket.join(agentRoom); 
       const history = await prisma.message.findMany({ where: { sessionId: updated.sessionId }, orderBy: { createdAt: 'asc' } });
       io.to(socket.id).emit('message:history', { sessionId: updated.sessionId, messages: history });
       io.to(room).emit('handoff:accepted', { sessionId: updated.sessionId, agentName: socket.data.displayName || 'Agent' });
@@ -494,7 +617,8 @@ io.on('connection', (socket) => {
     (entry as any).endedBy = endedBy;
     (entry as any).endRequestedBy = endRequestedBy;
 
-    await appendUserSummary(userName, sessWithUser?.user?.id, entry);
+    // This is the previous summary writing line used from the database.
+    //await appendUserSummary(userName, sessWithUser?.user?.id, entry);
     const room = `public:session:${sessionId}`;
     io.to(room).emit('session:closed', { sessionId, endedBy, endRequestedBy });
     emitAdminSessionUpdate(sessionId, { status: 'closed', endedAt: new Date().toISOString() });

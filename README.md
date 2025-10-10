@@ -1,3 +1,4 @@
+
 # Webchat — Local live chat with handoff, WhatsApp, and RAG
 
 End-to-end live chat system where a user chats on the web, can request a human, an agent sees the queue with transcript preview, accepts the chat, and continues live in real time. WhatsApp channel, admin monitor, Kafka event publishing, and RAG bot for site-aware answers.
@@ -15,16 +16,17 @@ Useful references: docs/ARCHITECTURE.md and README-webchat.md
 - Handoff: “Talk to a human” queues session for agents with transcript preview
 - Agent accept: assigns session, loads full history, and joins live
 - End chat flow: user can request end; agent accepts or declines
-- Channels: Web by default; optional WhatsApp via Twilio
+- Channels: Web by default; WhatsApp via Twilio
 - RAG bot: site ingest + contextual answers with citations (OpenAI + pgvector)
 - Admin namespace: simple live monitor at `/admin`
-- Event streaming: optional Kafka publish for sessions, messages, and summaries
+- Event streaming: Kafka publish for sessions, messages, and summaries
 
 ## Requirements
 - Node.js 20+
 - pnpm: `npm i -g pnpm`
 - Docker (for local Postgres with pgvector via docker-compose)
-- Optional: OpenAI API key (RAG), Twilio credentials (WhatsApp), Kafka broker
+- OpenAI API key (RAG), Twilio credentials (WhatsApp), Kafka broker
+- Agno AI service (for AI replies/suggestions)
 
 ## Quick Start
 
@@ -53,6 +55,10 @@ ADMIN_ENABLED=true
 # OPENAI_API_KEY=sk-...
 # OPENAI_MODEL=gpt-4o-mini
 # OPENAI_EMBED_MODEL=text-embedding-3-small
+
+# Agno AI 
+# AGNO_ENABLED=true
+# AGNO_URL=http://localhost:7001
 
 # Twilio WhatsApp
 # TWILIO_ACCOUNT_SID=AC...
@@ -103,7 +109,7 @@ ADMIN_ENABLED=true
 - Inbound messages create or reuse a WhatsApp session, send to agents, and receive bot replies until an agent accepts
 - Agent replies are relayed to WhatsApp
 
-## RAG Bot and Widget (Optional)
+## RAG Bot and Widget 
 
 - Site ingest endpoint (server): `POST /ingest { site, max_pages? }` → indexes the site into Postgres (`RagPage`)
 - Bot answers: When a session is in `bot_pending`, user messages trigger `ragChat` with top-K snippets + citations
@@ -135,7 +141,7 @@ ADMIN_ENABLED=true
 ## Repository Structure
 - pnpm-workspace.yaml, tsconfig.base.json, docker-compose.yml
 - packages/
-  - server: Fastify + Socket.IO + Prisma + optional Kafka/Twilio/OpenAI, public assets under `src/public`
+  - server: Fastify + Socket.IO + Prisma + Kafka/Twilio/OpenAI, public assets under `src/public`
   - web-user: React/Vite user app (`/` and `/chat` routes, floating widget menu)
   - web-agent: React/Vite agent app (queue, accept, live chat, end flow)
 - docs/
@@ -173,3 +179,23 @@ ADMIN_ENABLED=true
 - Review rate limits and add input validation on all endpoints/events
 
 For deeper internals and file-by-file notes, see docs/ARCHITECTURE.md.
+
+## Agno AI Integration 
+
+Agno AI powers automated bot replies and agent suggestions when enabled.
+
+- Enable via env:
+  - `AGNO_ENABLED=true`
+  - `AGNO_URL` points to the Agno service (default `http://localhost:7001`).
+
+- Server behavior when enabled:
+  - Bot replies: when a session is `bot_pending`, user messages trigger Agno; the reply is posted as an agent message. Any returned `sources` are attached in message metadata.
+  - Agent suggestions: when a session is `active_with_agent`, new user messages trigger Agno suggestions, emitted to the agent-only room as `suggestion:new`.
+  - Memory updates: all user/agent messages, plus bot replies, are sent to Agno for memory via `memory_update`.
+
+- Agno API contracts expected by the server:
+  - `POST /ai/answer` with `{ sessionId, userId, messages: [{ role: 'user'|'assistant'|'system', content }], context? }` → `{ text, sources? }`
+  - `POST /ai/suggest` with `{ sessionId, userId, lastMessages: Msg[], max? }` → `{ suggestions: string[] }`
+  - `POST /ai/memory_update` with `{ sessionId, userId, actor: 'user'|'agent'|'bot', text }` → `{ ok: true }`
+
+If you don’t run an Agno service, leave `AGNO_ENABLED` unset or `false`; the app runs without AI replies/suggestions.

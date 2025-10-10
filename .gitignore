@@ -56,3 +56,7 @@ postgres-data/
 # Ensure Prisma schema and migrations are never ignored.
 !**/prisma/
 !**/prisma/**
+
+
+
+.venv/

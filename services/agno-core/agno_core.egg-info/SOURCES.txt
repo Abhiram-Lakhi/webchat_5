@@ -1,0 +1,8 @@
+pyproject.toml
+agno_core.egg-info/PKG-INFO
+agno_core.egg-info/SOURCES.txt
+agno_core.egg-info/dependency_links.txt
+agno_core.egg-info/entry_points.txt
+agno_core.egg-info/requires.txt
+agno_core.egg-info/top_level.txt
+agnocore/app.py
